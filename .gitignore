@@ -1,0 +1,39 @@
+# Magento
+magento/
+vendor/
+node_modules/
+
+# Docker volumes
+mysql_data/
+elasticsearch_data/
+redis_data/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# SSL certificates (add your own)
+ssl/*.key
+ssl/*.crt
+ssl/*.pem
+
+# Temporary files
+*.tmp
+*.bak

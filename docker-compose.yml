@@ -1,0 +1,132 @@
+
+services:
+  php:
+    build: .
+    container_name: magento2_php
+    environment:
+      MAGENTO_RUN_MODE: ${MAGENTO_RUN_MODE}
+      PHP_MEMORY_LIMIT: ${PHP_MEMORY_LIMIT}
+      UPLOAD_MAX_FILESIZE: ${UPLOAD_MAX_FILESIZE}
+      POST_MAX_SIZE: ${POST_MAX_SIZE}
+      MAX_EXECUTION_TIME: ${MAX_EXECUTION_TIME}
+      DB_HOST: ${DB_HOST}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      OPENSEARCH_HOST: ${OPENSEARCH_HOST}
+      OPENSEARCH_PORT: ${OPENSEARCH_PORT}
+    volumes:
+      - ./magento:/var/www/html
+      - ./php.ini:/usr/local/etc/php/conf.d/custom.ini
+      - ./php-fpm.conf:/usr/local/etc/php-fpm.d/custom.conf
+    depends_on:
+      - mysql
+      - redis
+      - opensearch
+    networks:
+      - magento
+    working_dir: /var/www/html
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: magento2_nginx
+    ports:
+      - "${WEB_PORT}:80"
+      - "${HTTPS_PORT}:443"
+    volumes:
+      - ./magento:/var/www/html
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - php
+    networks:
+      - magento
+    environment:
+      VIRTUAL_HOST: ${VIRTUAL_HOST} 
+
+  mysql:
+    image: mysql:8.0
+    container_name: magento2_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_LOWER_CASE_TABLE_NAMES: 1
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3306:3306"
+    networks:
+      - magento
+    command: 
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+      - --max_allowed_packet=256M
+      - --tmp_table_size=32M
+      - --max_heap_table_size=32M
+
+  opensearch:
+    image: opensearchproject/opensearch:2.11.1
+    container_name: magento2_opensearch
+    environment:
+      - discovery.type=single-node
+      - plugins.security.disabled=true
+      - "OPENSEARCH_JAVA_OPTS=${OPENSEARCH_JAVA_OPTS}"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    ports:
+      - "${OPENSEARCH_PORT}:9200"
+    networks:
+      - magento
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  redis:
+    image: redis:7-alpine
+    container_name: magento2_redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - magento
+    command: redis-server --appendonly yes --requirepass ""
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: magento2_mailhog
+    ports:
+      - "${MAILHOG_SMTP_PORT}:1025"
+      - "${MAILHOG_WEB_PORT}:8025"
+    networks:
+      - magento
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: magento2_phpmyadmin
+    ports:
+      - "${PHPMYADMIN_PORT}:80"
+    environment:
+      PMA_HOST: ${DB_HOST}
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    depends_on:
+      - mysql
+    networks:
+      - magento
+
+volumes:
+  mysql_data:
+  redis_data:
+  opensearch_data:
+
+networks:
+  magento:
+    driver: bridge
