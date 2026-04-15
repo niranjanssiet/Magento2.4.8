@@ -33,26 +33,7 @@ docker-compose exec php composer create-project --repository-url=https://repo.ma
 
 There is no need to install Composer on the host machine; Composer is available inside the `php` container.
 
-### 3. Prepare Magento environment
-```bash
-docker-compose exec php cp env.example .env
-```
-
-Inside the Magento root `.env`, update the database and search settings if needed:
-```bash
-MAGENTO_BACKEND_FRONTNAME=admin
-DB_HOST=mysql
-DB_NAME=magento2
-DB_USER=magento
-DB_PASSWORD=magento123
-REDIS_HOST=redis
-REDIS_PORT=6379
-OPENSEARCH_HOST=opensearch
-OPENSEARCH_PORT=9200
-OPENSEARCH_ENABLE=1
-```
-
-### 4. Install Magento
+### 3. Install Magento
 ```bash
 docker-compose exec php bin/magento setup:install \
   --base-url=http://localhost/ \
@@ -80,13 +61,13 @@ docker-compose exec php bin/magento setup:install \
   --cache-backend-redis-port=6379
 ```
 
-### 5. Deploy static content and compile
+### 4. Deploy static content and compile
 ```bash
 docker-compose exec php bin/magento setup:static-content:deploy -f
 docker-compose exec php bin/magento setup:di:compile
 ```
 
-### 6. Set file permissions
+### 5. Set file permissions
 ```bash
 docker-compose exec php chown -R www-data:www-data /var/www/html
 docker-compose exec php chmod -R 755 /var/www/html
